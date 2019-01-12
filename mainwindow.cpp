@@ -34,6 +34,7 @@ MainWindow::~MainWindow()
     indexing = false;
     searching = false;
     deleted = true;
+    future1.waitForFinished(), future2.waitForFinished(), future3.waitForFinished(), future4.waitForFinished();
     delete model;
     delete ui;
 }
@@ -59,7 +60,7 @@ void MainWindow::onStartIndexClicked()
     QVariant data = model->filePath(index);
     selectedDir = QDir(data.toString());
     ui->folderLabel->setText("Current folder: " + data.toString());
-    QFuture<void> future = QtConcurrent::run(this, &MainWindow::indexDirectory, QDir(data.toString()));
+    future1 = QtConcurrent::run(this, &MainWindow::indexDirectory, QDir(data.toString()));
 }
 
 void MainWindow::indexDirectory(QDir directory)
@@ -74,7 +75,8 @@ void MainWindow::indexDirectory(QDir directory)
         files.push_back(filePath);
     }
     std::function<IndexedFile(QFileInfo)> functor = [this](QFileInfo file) -> IndexedFile { return this->indexFile(file); };
-    this->indexedFiles = QtConcurrent::blockingMapped<IndexedFileList>(files, functor);
+    future2 = QtConcurrent::mapped(files, functor);
+    this->indexedFiles = future2.results();
     emit indexingComplete();
 }
 
@@ -132,13 +134,13 @@ void MainWindow::onStartSearchClicked()
     ui->statusLabel->setText("Status: searching...");
     ui->searchButton->setText("Stop searching");
     QString string = ui->lineEdit->text();
-    QFuture<void> future = QtConcurrent::run(this, &MainWindow::searchDirectory, string);
+    future3 = QtConcurrent::run(this, &MainWindow::searchDirectory, string);
 }
 
 void MainWindow::searchDirectory(QString string)
 {
     auto functor = [this, string](IndexedFile file) { searchFile(file, string); };
-    QtConcurrent::blockingMap(indexedFiles, functor);
+    future4 = QtConcurrent::map(indexedFiles, functor);
     emit searchComplete();
 }
 
