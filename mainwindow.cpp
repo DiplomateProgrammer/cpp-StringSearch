@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include <iostream>
 const qint64 ONE_READ_CHARS = 1024*1024;
-const int MAX_FOUND_POS = 1000;
+const int MAX_FOUND_POS = 50000;
 const int MAX_TRIGRAM_NUM = 40000;
 
 MainWindow::MainWindow(QWidget *parent) :
