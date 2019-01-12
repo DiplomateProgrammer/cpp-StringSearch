@@ -3,6 +3,7 @@
 #include <iostream>
 const qint64 ONE_READ_CHARS = 1024*1024;
 const int MAX_FOUND_POS = 1000;
+const int MAX_TRIGRAM_NUM = 40000;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -34,6 +35,8 @@ MainWindow::~MainWindow()
 {
     indexing = false;
     searching = false;
+    futureIndexMap.cancel();
+    futureSearchMap.cancel();
     future1.waitForFinished(), future2.waitForFinished();
     delete model;
     delete ui;
@@ -45,6 +48,7 @@ void MainWindow::onStartIndexClicked()
     if (indexing)
     {
         indexing = false;
+        futureIndexMap.cancel();
         future1.waitForFinished();
         indexedFiles.clear();
         return;
@@ -68,15 +72,15 @@ void MainWindow::indexDirectory(QDir directory)
 {
     QDirIterator it(directory, QDirIterator::Subdirectories);
     QFileInfoList files;
-    while(it.hasNext())
+    while(it.hasNext() && indexing)
     {
-        if (!indexing) { return; }
         QString filePath = it.next();
         if(!it.fileInfo().isFile()) { continue; }
         files.push_back(filePath);
     }
     std::function<IndexedFile(QFileInfo)> functor = [this](QFileInfo file) -> IndexedFile { return this->indexFile(file); };
-    this->indexedFiles = QtConcurrent::mapped(files, functor).results();
+    futureIndexMap = QtConcurrent::mapped(files, functor);
+    this->indexedFiles = futureIndexMap.results();
     emit indexingComplete();
 }
 
@@ -97,19 +101,19 @@ void MainWindow::onIndexingComplete()
 IndexedFile MainWindow::indexFile(QFileInfo file)
 {
     IndexedFile indexedFile(file);
-    if(!indexing) { return indexedFile ; }
     indexedFile.valid = false;
+    if(!indexing) { return indexedFile ; }
     QFile fileRead(file.absoluteFilePath());
     fileRead.open(QIODevice::ReadOnly);
     QTextStream stream(&fileRead);
     QString str = stream.read(2);
     while(!stream.atEnd())
     {
-        if (!indexing || indexedFile.trigrams.size() > 50000)  { return indexedFile; }
+        if (!indexing || indexedFile.trigrams.size() > MAX_TRIGRAM_NUM)  { return indexedFile; }
         QString buffer = stream.read(ONE_READ_CHARS);
         for(int i = 0; i < buffer.size(); i++)
         {
-            if (!indexing || indexedFile.trigrams.size() > 50000)  { return indexedFile; }
+            if (!indexing || indexedFile.trigrams.size() > MAX_TRIGRAM_NUM)  { return indexedFile; }
             str.append(buffer.at(i));
             if(str.back() == 0) { return indexedFile; }
             indexedFile.trigrams.insert(str);
@@ -125,6 +129,7 @@ void MainWindow::onStartSearchClicked()
     if(searching)
     {
         searching = false;
+        futureSearchMap.cancel();
         future2.waitForFinished();
         return;
     }
@@ -145,7 +150,8 @@ void MainWindow::onStartSearchClicked()
 void MainWindow::searchDirectory(QString string)
 {
     auto functor = [this, string](IndexedFile file) { searchFile(file, string); };
-    QtConcurrent::map(indexedFiles, functor).waitForFinished();
+    futureSearchMap = QtConcurrent::map(indexedFiles, functor);
+    futureSearchMap.waitForFinished();
     emit searchComplete();
 }
 
