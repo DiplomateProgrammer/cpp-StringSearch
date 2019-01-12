@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->outputView->setColumnCount(3);
     ui->outputView->setHeaderLabels({"File name", "File path", "Position"});
     ui->outputView->setColumnWidth(1, 400);
-    indexing = searching = deleted = false;
+    indexing = searching = false;
     connect(ui->indexButton, SIGNAL(clicked()), this, SLOT(onStartIndexClicked()), Qt::UniqueConnection);
     connect(ui->searchButton, SIGNAL(clicked()), this, SLOT(onStartSearchClicked()), Qt::UniqueConnection);
     connect(this, SIGNAL(calculatedFileSignal(QFileInfo, QListInt)), this, SLOT(onCalculatedFile(QFileInfo, QListInt)), Qt::UniqueConnection);
@@ -33,8 +33,7 @@ MainWindow::~MainWindow()
 {
     indexing = false;
     searching = false;
-    deleted = true;
-    future1.waitForFinished(), future2.waitForFinished(), future3.waitForFinished(), future4.waitForFinished();
+    future1.waitForFinished(), future2.waitForFinished();
     delete model;
     delete ui;
 }
@@ -45,6 +44,7 @@ void MainWindow::onStartIndexClicked()
     if (indexing)
     {
         indexing = false;
+        future1.waitForFinished();
         indexedFiles.clear();
         return;
     }
@@ -75,14 +75,12 @@ void MainWindow::indexDirectory(QDir directory)
         files.push_back(filePath);
     }
     std::function<IndexedFile(QFileInfo)> functor = [this](QFileInfo file) -> IndexedFile { return this->indexFile(file); };
-    future2 = QtConcurrent::mapped(files, functor);
-    this->indexedFiles = future2.results();
+    this->indexedFiles = QtConcurrent::mapped(files, functor).results();
     emit indexingComplete();
 }
 
 void MainWindow::onIndexingComplete()
 {
-    if(deleted) { return; }
     if(indexing)
     {
         ui->statusLabel->setText("Status: indexing finished!");
@@ -126,6 +124,7 @@ void MainWindow::onStartSearchClicked()
     if(searching)
     {
         searching = false;
+        future2.waitForFinished();
         return;
     }
     searching = true;
@@ -134,19 +133,18 @@ void MainWindow::onStartSearchClicked()
     ui->statusLabel->setText("Status: searching...");
     ui->searchButton->setText("Stop searching");
     QString string = ui->lineEdit->text();
-    future3 = QtConcurrent::run(this, &MainWindow::searchDirectory, string);
+    future2 = QtConcurrent::run(this, &MainWindow::searchDirectory, string);
 }
 
 void MainWindow::searchDirectory(QString string)
 {
     auto functor = [this, string](IndexedFile file) { searchFile(file, string); };
-    future4 = QtConcurrent::map(indexedFiles, functor);
+    QtConcurrent::map(indexedFiles, functor).waitForFinished();
     emit searchComplete();
 }
 
 void MainWindow::onSearchComplete()
 {
-    if(deleted) { return; }
     if(searching) { ui->statusLabel->setText("Status: Search finished!"); }
     else { ui->statusLabel->setText("Status: search cancelled"); }
     searching = false;

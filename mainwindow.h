@@ -35,10 +35,8 @@ private:
     void searchDirectory(QString string);
     IndexedFile indexFile(QFileInfo file);
     void searchFile(IndexedFile file, QString searchedStr);
-    std::atomic_bool indexing, searching, deleted;
-    QFuture<void> future1;
-    QFuture<IndexedFile> future2;
-    QFuture<void> future3, future4;
+    std::atomic_bool indexing, searching;
+    QFuture<void> future1, future2;
 private slots:
     void onStartIndexClicked();
     void onStartSearchClicked();
