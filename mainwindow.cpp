@@ -115,7 +115,7 @@ IndexedFile MainWindow::indexFile(QFileInfo file)
         {
             if (!indexing || indexedFile.trigrams.size() > MAX_TRIGRAM_NUM)  { return indexedFile; }
             str.append(buffer.at(i));
-            if(str.back() == 0) { return indexedFile; }
+            if(str[str.length() - 1] == 0) { return indexedFile; }
             indexedFile.trigrams.insert(str);
             str = str.right(2);
         }
@@ -178,17 +178,21 @@ void MainWindow::searchFile(IndexedFile file, QString searchedStr)
     QFile fileRead(file.file.absoluteFilePath());
     fileRead.open(QIODevice::ReadOnly);
     QTextStream stream(&fileRead);
-    QString candidate = stream.read(searchedStr.length() - 1);
+    QString buffer;
     qint64 pos = 1;
     while(!stream.atEnd())
     {
         if(!searching) { return; }
-        QString buffer = stream.read(ONE_READ_CHARS);
-        for(int i = 0; i < buffer.size(); i++)
+        buffer = buffer.right(searchedStr.length() - 1) + stream.read(ONE_READ_CHARS);
+        for(int i = 0; i <= buffer.size() - searchedStr.length(); i++)
         {
             if(!searching) { return; }
-            candidate.append(buffer.at(i));
-            if(candidate == searchedStr)
+            bool equal = true;
+            for(int j = i; j <= i + searchedStr.length() - 1; j++)
+            {
+                if(buffer[j] != searchedStr[j - i]) { equal = false; }
+            }
+            if(equal)
             {
                 positions.append(pos);
                 if(positions.size() >= MAX_FOUND_POS)
@@ -198,7 +202,6 @@ void MainWindow::searchFile(IndexedFile file, QString searchedStr)
                 }
             }
             pos++;
-            candidate = candidate.right(candidate.length() - 1);
         }
     }
     if(!positions.empty())
