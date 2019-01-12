@@ -3,6 +3,7 @@
 #include <iostream>
 const qint64 ONE_READ_CHARS = 1024*1024;
 const int MAX_FOUND_POS = 1000;
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -125,6 +126,11 @@ void MainWindow::onStartSearchClicked()
     {
         searching = false;
         future2.waitForFinished();
+        return;
+    }
+    if(ui->lineEdit->text().size() == 0)
+    {
+        ui->statusLabel->setText("Status: please enter a string.");
         return;
     }
     searching = true;
