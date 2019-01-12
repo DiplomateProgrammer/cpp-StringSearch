@@ -188,7 +188,7 @@ void MainWindow::searchFile(IndexedFile file, QString searchedStr)
         {
             if(!searching) { return; }
             bool equal = true;
-            for(int j = i; j <= i + searchedStr.length() - 1; j++)
+            for(int j = i; equal && j <= i + searchedStr.length() - 1; j++)
             {
                 if(buffer[j] != searchedStr[j - i]) { equal = false; }
             }
