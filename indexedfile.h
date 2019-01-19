@@ -7,9 +7,9 @@ struct IndexedFile
 {
     IndexedFile() {}
     IndexedFile(QFileInfo file): file(file) {}
-    IndexedFile(QFileInfo file, QSet<QString> trigrams): file(file), trigrams(trigrams) {}
+    IndexedFile(QFileInfo file, QSet<unsigned int> trigrams): file(file), trigrams(trigrams) {}
     QFileInfo file;
-    QSet<QString> trigrams;
+    QSet<unsigned int> trigrams;
     bool valid;
 };
 #endif // INDEXEDFILE_H

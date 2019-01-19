@@ -39,6 +39,7 @@ private:
     QFuture<void> future1, future2;
     QFuture<IndexedFile> futureIndexMap;
     QFuture<void> futureSearchMap;
+    unsigned int trigramHash(QString trigram);
 private slots:
     void onStartIndexClicked();
     void onStartSearchClicked();

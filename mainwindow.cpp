@@ -116,7 +116,7 @@ IndexedFile MainWindow::indexFile(QFileInfo file)
             if (!indexing || indexedFile.trigrams.size() > MAX_TRIGRAM_NUM)  { return indexedFile; }
             str.append(buffer.at(i));
             if(str[str.length() - 1] == 0) { return indexedFile; }
-            indexedFile.trigrams.insert(str);
+            indexedFile.trigrams.insert(trigramHash(str));
             str = str.right(2);
         }
     }
@@ -171,7 +171,7 @@ void MainWindow::searchFile(IndexedFile file, QString searchedStr)
     {
         if(!searching) { return; }
         trigram.append(searchedStr.at(i));
-        if(!file.trigrams.contains(trigram)) { return; }
+        if(!file.trigrams.contains(trigramHash(trigram))) { return; }
         trigram = trigram.right(2);
     }
     QList<qint64> positions;
@@ -230,4 +230,7 @@ void MainWindow::onCalculatedFile(QFileInfo file, QListInt positions)
     }
 }
 
-
+unsigned int MainWindow::trigramHash(QString trigram)
+{
+    return trigram.at(0).toLatin1()*29 + trigram.at(1).toLatin1()*29*29 + trigram.at(2).toLatin1()*29*29*29;
+}
