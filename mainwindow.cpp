@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(calculatedFileSignal(QFileInfo, QListInt)), this, SLOT(onCalculatedFile(QFileInfo, QListInt)), Qt::UniqueConnection);
     connect(this, SIGNAL(indexingComplete()), this, SLOT(onIndexingComplete()), Qt::UniqueConnection);
     connect(this, SIGNAL(searchComplete()), this, SLOT(onSearchComplete()), Qt::UniqueConnection);
-    connect(this, SIGNAL(fileIndexingComplete(QString)), this, SLOT(addToWatcher(QString)), Qt::UniqueConnection);
+    connect(this, SIGNAL(needsAddingToWatcher(QString)), this, SLOT(addToWatcher(QString)), Qt::UniqueConnection);
     connect(&systemWatcher, SIGNAL(directoryChanged(QString)), this, SLOT(onSystemWatcherAlert(QString)), Qt::UniqueConnection);
     connect(&systemWatcher, SIGNAL(fileChanged(QString)), this, SLOT(onSystemWatcherAlert(QString)), Qt::UniqueConnection);
 }
@@ -82,6 +82,7 @@ void MainWindow::indexDirectory(QDir directory)
         QString filePath = it.next();
         if(!it.fileInfo().isFile())
         {
+            emit needsAddingToWatcher(filePath);
             addToWatcher(filePath);
             continue;
         }
@@ -130,7 +131,7 @@ IndexedFile MainWindow::indexFile(QFileInfo file)
         }
     }
     indexedFile.valid = true;
-    emit fileIndexingComplete(file.absoluteFilePath());
+    emit needsAddingToWatcher(file.absoluteFilePath());
     return indexedFile;
 }
 void MainWindow::onStartSearchClicked()

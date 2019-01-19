@@ -53,7 +53,7 @@ private slots:
 signals:
     void calculatedFileSignal(QFileInfo file, QListInt positions);
     void indexingComplete();
-    void fileIndexingComplete(QString filePath);
+    void needsAddingToWatcher(QString filePath);
     void searchComplete();
 };
 
