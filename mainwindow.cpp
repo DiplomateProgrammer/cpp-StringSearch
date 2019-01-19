@@ -48,15 +48,16 @@ MainWindow::~MainWindow()
 void MainWindow::onStartIndexClicked()
 {
     if (searching) { return; }
-    clearWatcher();
     if (indexing)
     {
         indexing = false;
         futureIndexMap.cancel();
         future1.waitForFinished();
+        clearWatcher();
         indexedFiles.clear();
         return;
     }
+    clearWatcher();
     indexing = true;
     ui->statusLabel->setText("Status: indexing...");
     indexedFiles.clear();
