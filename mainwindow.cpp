@@ -253,8 +253,10 @@ void MainWindow::addToWatcher(QString filePath)
 void MainWindow::clearWatcher()
 {
     systemWatcher.removePath(selectedDir.absolutePath());
-    QDirIterator it(selectedDir, QDirIterator::Subdirectories);
-    while(it.hasNext()) { systemWatcher.removePath(it.next()); }
+    for(auto it: indexedFiles)
+    {
+        systemWatcher.removePath(it.file.absoluteFilePath());
+    }
 }
 
 void MainWindow::onSystemWatcherAlert(QString path)
@@ -264,8 +266,8 @@ void MainWindow::onSystemWatcherAlert(QString path)
     futureIndexMap.cancel();
     futureSearchMap.cancel();
     future1.waitForFinished(), future2.waitForFinished();
-    indexedFiles.clear();
     clearWatcher();
+    indexedFiles.clear();
     ui->statusLabel->setText("Status: achtung, someone has changed files, reindex the directory!");
     ui->indexButton->setText("Start indexing");
     ui->searchButton->setText("Start searching");
