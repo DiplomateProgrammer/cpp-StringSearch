@@ -31,24 +31,29 @@ private:
     QFileSystemModel *model;
     QList<IndexedFile> indexedFiles;
     QMap<QString, QTreeWidgetItem*> outputMap;
-    void indexDirectory(QDir directory);
-    void searchDirectory(QString string);
     IndexedFile indexFile(QFileInfo file);
-    void searchFile(IndexedFile file, QString searchedStr);
     std::atomic_bool indexing, searching;
     QFuture<void> future1, future2;
     QFuture<IndexedFile> futureIndexMap;
     QFuture<void> futureSearchMap;
     unsigned int trigramHash(QString trigram);
+    QFileSystemWatcher systemWatcher;
+    void indexDirectory(QDir directory);
+    void searchDirectory(QString string);
+    void searchFile(IndexedFile file, QString searchedStr);
+    void clearWatcher();
 private slots:
     void onStartIndexClicked();
     void onStartSearchClicked();
     void onCalculatedFile(QFileInfo file, QListInt positions);
     void onIndexingComplete();
     void onSearchComplete();
+    void addToWatcher(QString filePath);
+    void onSystemWatcherAlert(QString path);
 signals:
     void calculatedFileSignal(QFileInfo file, QListInt positions);
     void indexingComplete();
+    void fileIndexingComplete(QString filePath);
     void searchComplete();
 };
 

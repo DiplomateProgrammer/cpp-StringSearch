@@ -29,6 +29,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(calculatedFileSignal(QFileInfo, QListInt)), this, SLOT(onCalculatedFile(QFileInfo, QListInt)), Qt::UniqueConnection);
     connect(this, SIGNAL(indexingComplete()), this, SLOT(onIndexingComplete()), Qt::UniqueConnection);
     connect(this, SIGNAL(searchComplete()), this, SLOT(onSearchComplete()), Qt::UniqueConnection);
+    connect(this, SIGNAL(fileIndexingComplete(QString)), this, SLOT(addToWatcher(QString)), Qt::UniqueConnection);
+    connect(&systemWatcher, SIGNAL(directoryChanged(QString)), this, SLOT(onSystemWatcherAlert(QString)), Qt::UniqueConnection);
+    connect(&systemWatcher, SIGNAL(fileChanged(QString)), this, SLOT(onSystemWatcherAlert(QString)), Qt::UniqueConnection);
 }
 
 MainWindow::~MainWindow()
@@ -45,6 +48,7 @@ MainWindow::~MainWindow()
 void MainWindow::onStartIndexClicked()
 {
     if (searching) { return; }
+    clearWatcher();
     if (indexing)
     {
         indexing = false;
@@ -64,6 +68,7 @@ void MainWindow::onStartIndexClicked()
     QModelIndex index = indexList.front();
     QVariant data = model->filePath(index);
     selectedDir = QDir(data.toString());
+    systemWatcher.addPath(data.toString());
     ui->folderLabel->setText("Current folder: " + data.toString());
     future1 = QtConcurrent::run(this, &MainWindow::indexDirectory, QDir(data.toString()));
 }
@@ -75,7 +80,11 @@ void MainWindow::indexDirectory(QDir directory)
     while(it.hasNext() && indexing)
     {
         QString filePath = it.next();
-        if(!it.fileInfo().isFile()) { continue; }
+        if(!it.fileInfo().isFile())
+        {
+            addToWatcher(filePath);
+            continue;
+        }
         files.push_back(filePath);
     }
     std::function<IndexedFile(QFileInfo)> functor = [this](QFileInfo file) -> IndexedFile { return this->indexFile(file); };
@@ -121,6 +130,7 @@ IndexedFile MainWindow::indexFile(QFileInfo file)
         }
     }
     indexedFile.valid = true;
+    emit fileIndexingComplete(file.absoluteFilePath());
     return indexedFile;
 }
 void MainWindow::onStartSearchClicked()
@@ -233,4 +243,30 @@ void MainWindow::onCalculatedFile(QFileInfo file, QListInt positions)
 unsigned int MainWindow::trigramHash(QString trigram)
 {
     return trigram.at(0).toLatin1()*29 + trigram.at(1).toLatin1()*29*29 + trigram.at(2).toLatin1()*29*29*29;
+}
+
+void MainWindow::addToWatcher(QString filePath)
+{
+    systemWatcher.addPath(filePath);
+}
+
+void MainWindow::clearWatcher()
+{
+    systemWatcher.removePath(selectedDir.absolutePath());
+    QDirIterator it(selectedDir, QDirIterator::Subdirectories);
+    while(it.hasNext()) { systemWatcher.removePath(it.next()); }
+}
+
+void MainWindow::onSystemWatcherAlert(QString path)
+{
+    indexing = false;
+    searching = false;
+    futureIndexMap.cancel();
+    futureSearchMap.cancel();
+    future1.waitForFinished(), future2.waitForFinished();
+    indexedFiles.clear();
+    clearWatcher();
+    ui->statusLabel->setText("Status: achtung, someone has changed files, reindex the directory!");
+    ui->indexButton->setText("Start indexing");
+    ui->searchButton->setText("Start searching");
 }
