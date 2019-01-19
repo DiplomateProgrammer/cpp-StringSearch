@@ -83,7 +83,6 @@ void MainWindow::indexDirectory(QDir directory)
         if(!it.fileInfo().isFile())
         {
             emit needsAddingToWatcher(filePath);
-            addToWatcher(filePath);
             continue;
         }
         files.push_back(filePath);
