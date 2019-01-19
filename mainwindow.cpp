@@ -269,4 +269,5 @@ void MainWindow::onSystemWatcherAlert(QString path)
     ui->statusLabel->setText("Status: achtung, someone has changed files, reindex the directory!");
     ui->indexButton->setText("Start indexing");
     ui->searchButton->setText("Start searching");
+    ui->folderLabel->setText("Current folder: none");
 }
